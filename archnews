@@ -1,0 +1,319 @@
+#!/usr/bin/env python3
+
+"""
+Utility for displaying Arch news feed in console.
+
+author: Martin Jiřička (mjiricka@gmail.com), 2017
+
+licence: MIT
+"""
+
+import locale
+import time
+from argparse import ArgumentParser
+from email.utils import parsedate
+from html.parser import HTMLParser
+from re import sub
+from textwrap import wrap
+from urllib import request
+from xml.dom import minidom
+
+
+
+# ************************************************************
+#  Globals
+# ************************************************************
+
+FEED_URL = 'https://www.archlinux.org/feeds/news/'
+
+WRAP_SIZE = 100  # Zero for no wrap.
+COLORIZE_OUTPUT = True
+ORDER = True  # True = newest entries last, false = newest entries first
+NUM_ENTRIES = 3  # 0 for all
+
+
+# ************************************************************
+#  Output
+# ************************************************************
+
+class Out:
+    """Class for printing output, it supports color printing."""
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    GRAY = '\033[90m'
+    ENDC = '\033[0m'
+
+    @staticmethod
+    def color_print(color, text):
+        """Prints colored text, possible colors: green, blue and red."""
+        if color == 'green':
+            print(Out.GREEN + text + Out.ENDC)
+        elif color == 'blue':
+            print(Out.BLUE + text + Out.ENDC)
+        elif color == 'gray':
+            print(Out.GRAY + text + Out.ENDC)
+
+    @staticmethod
+    def white_print(_, text):
+        """Prints text."""
+        print(text)
+
+
+# ************************************************************
+#  HTML parser
+# ************************************************************
+
+class TheParser(HTMLParser):
+    """Parser formats HTML into plain text, result is stored inside `out` property."""
+    def __init__(self):
+        super(TheParser, self).__init__()
+
+        self.out = ''
+        self._stack = []
+        self._inside_pre = False
+
+    @staticmethod
+    def _squeeze_whitespace(text):
+        """Squeezes whitespaces into one single space."""
+        return sub(r'\s+', ' ', text)
+
+    def _append(self, text):
+        if not text:
+            return
+
+        if self.out:
+            last_char = self.out[-1]
+        else:
+            last_char = ''
+
+        if last_char.isspace():
+            if text[0] in [' ', '\t']:
+                # Squeeze spaces, unless they are intended.
+                self.out = self.out.rstrip(' \t') + text
+            else:
+                if last_char == text[0] == '\n':
+                    # This ensures that at most two consecutive new lines are added.
+                    self.out = self.out.rstrip() + '\n\n' + text.lstrip('\n')
+                else:
+                    self.out += text
+        else:
+            self.out += text
+
+    def _append_raw(self, text):
+        self.out += text
+
+    def handle_starttag(self, tag, attrs):
+        self._stack.append(tag)
+
+        if tag == 'a':
+            self._append('<')
+        elif tag == 'br':
+            self._append('\n')
+        elif tag == 'pre':
+            self._inside_pre = True
+        elif tag == 'li':
+            self._append(' \u2022 ')  # Bullet Unicode symbol.
+
+    def handle_endtag(self, tag):
+        self._stack.pop()
+
+        if tag in ['p', 'div']:
+            self._append('\n\n')
+        elif tag == 'a':
+            self._append('>')
+        elif tag in ['li', 'ul', 'ol']:
+            self._append('\n')
+        elif tag == 'pre':
+            self._inside_pre = False
+            self._append('\n')
+
+    def handle_data(self, data):
+        if self._stack:
+            tag = self._stack[-1]
+        else:
+            tag = ''
+
+        if self._inside_pre:
+            # Everything inside <pre> is indented by three spaces.
+            indented_data = '\n'.join(['   '+line for line in data.split('\n')])
+            self._append_raw(indented_data)
+        elif tag == 'code':
+            self._append(data.replace(' ', '\u00A0'))  # Non breaking space.
+        elif tag == 'pre':
+            self._append('\n')
+        else:
+            squeezed_data = self._squeeze_whitespace(data)
+            # This is not 100% correct, but usually this is white-space between two
+            # tags, each on its own line. This is common and looks ugly in a terminal,
+            # so I decided to filter it.
+            if squeezed_data != ' ':
+                self._append(squeezed_data)
+
+    @staticmethod
+    def unhtml(text):
+        """Use parser on given `text` and return the result."""
+        parser = TheParser()
+        parser.feed(text)
+        return parser.out
+
+
+# ************************************************************
+#  Other auxiliary classes.
+# ************************************************************
+
+class FeedEntry:
+    """Represents single news feed entry."""
+    def __init__(self, time_, title, link, description):
+        self.time = time_
+        self.title = title
+        self.link = link
+        self.description = description
+
+    def print(self, wrap_func):
+        """Prints news feed entry."""
+        Out.print('gray', self.link)
+        Out.print('blue', time.strftime('%x %X', self.time))
+        Out.print('green', self.title)
+        print()
+        text = TheParser.unhtml(self.description)
+        text = text.strip()
+        print(wrap_func(text))
+
+
+class FeedParser:
+    """Parses Arch feed and returns array of `FeedEntry`."""
+    @staticmethod
+    def _get_text(nodelist):
+        buffer = []
+        for node in nodelist:
+            if node.nodeType == node.TEXT_NODE:
+                buffer.append(node.data)
+        return ''.join(buffer)
+
+    @staticmethod
+    def _get(element, sub_el_name):
+        sub_el = element.getElementsByTagName(sub_el_name)[0]
+        sub_el_text = FeedParser._get_text(sub_el.childNodes)
+        return sub_el_text
+
+    @staticmethod
+    def _convert_time(pub_date):
+        date = parsedate(pub_date)
+        time_struct = time.mktime(date)
+        time_formatted = time.gmtime(time_struct)
+        return time_formatted
+
+    @staticmethod
+    def parse_feed(body):
+        """Parse feed and returns list of feed entries."""
+        xmldoc = minidom.parse(body)
+        item_list = xmldoc.getElementsByTagName('item')
+        items = []
+
+        for item in item_list:
+            title = FeedParser._get(item, 'title')
+            link = FeedParser._get(item, 'link')
+            pub_date = FeedParser._get(item, 'pubDate')
+            description = FeedParser._get(item, 'description')
+            time_formatted = FeedParser._convert_time(pub_date)
+            items.append(FeedEntry(time_formatted, title, link, description))
+
+        return items
+
+
+
+# ************************************************************
+#  main
+# ************************************************************
+
+def process_cmd_arguments():
+    """Function for processing command line arguments."""
+    parser = ArgumentParser(
+        description='Utility for displaying Arch news feed in console.')
+
+    parser.add_argument(
+        '-w', help='wrap length, zero for no wrap, default: ' + str(WRAP_SIZE),
+        type=int, default=WRAP_SIZE, dest='wrap_size')
+
+    parser.add_argument(
+        '-c', help='do not print in color, default is colorized output',
+        default=COLORIZE_OUTPUT, dest='colorize_output', action='store_false')
+
+    parser.add_argument(
+        '-n', help='how many entries to show, zero for all, default: ' + str(NUM_ENTRIES),
+        type=int, default=NUM_ENTRIES, dest='num_entries')
+
+    parser.add_argument(
+        '-r', help='print newest entries first, by default last entries are last',
+        default=ORDER, dest='order', action='store_false')
+
+    return parser.parse_args()
+
+
+def main(args):
+    """Here the interesting part of the script starts."""
+
+    try:
+        http_request = request.urlopen(FEED_URL)
+    except request.URLError:
+        print('Error when trying to fetch Arch Feed News :-(')
+        return
+    items = FeedParser.parse_feed(http_request)
+
+    # Debug: read from file `./feed`.
+    # f = open('./feed', 'rb')
+    # items = FeedParser.parse_feed(f)
+    # f.close()
+
+    def make_wrap(text):
+        """Function wrap text."""
+        def wrap_line(line):
+            """Function wraps one line of unintended (3 spaces) code."""
+            if line[0:3] == '   ':
+                return line
+            return '\n'.join(
+                wrap(line, args.wrap_size, drop_whitespace=True, break_long_words=False))
+
+        lines = text.split('\n')
+        lines2 = [wrap_line(l) for l in lines]
+        text_wrapped = '\n'.join(lines2)
+        return text_wrapped
+
+    def nowrap(text):
+        """Function does not wrap anything."""
+        return text
+
+    # Set color output.
+    if args.colorize_output:
+        Out.print = Out.color_print
+    else:
+        Out.print = Out.white_print
+
+    # Set default locale (or string like e.g. 'cs_CZ.UTF-8').
+    locale.setlocale(locale.LC_ALL, '')
+
+    # Set wrap according parameters.
+    if args.wrap_size == 0:
+        wrap_func = nowrap
+    else:
+        wrap_func = make_wrap
+
+    # Get only given number of entries.
+    if args.num_entries > 0:
+        items = items[0:args.num_entries]
+
+    # Set correct order.
+    if args.order:
+        items = items[::-1]  # `reversed` cannot be used because it cannot be indexed
+
+    for item in items:
+        item.print(wrap_func)
+        if item != items[-1]:
+            print('\n\n')
+
+
+# Run the program.
+main(process_cmd_arguments())
+
+
+# EOF
