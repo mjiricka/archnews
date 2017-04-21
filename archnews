@@ -28,7 +28,7 @@ FEED_URL = 'https://www.archlinux.org/feeds/news/'
 
 WRAP_SIZE = 100  # Zero for no wrap.
 COLORIZE_OUTPUT = True
-ORDER = True  # True = newest entries last, false = newest entries first
+ORDER = True  # True = newest entries last, False = newest entries first
 NUM_ENTRIES = 3  # 0 for all
 
 
@@ -37,14 +37,15 @@ NUM_ENTRIES = 3  # 0 for all
 # ************************************************************
 
 class Out:
-    """Class for printing output, it supports color printing."""
+    """Class for printing output, it supports color printing. Printing method must be
+       initialized via `set` method that adds `print` method."""
     BLUE = '\033[94m'
     GREEN = '\033[92m'
     GRAY = '\033[90m'
     ENDC = '\033[0m'
 
     @staticmethod
-    def color_print(color, text):
+    def _color_print(color, text):
         """Prints colored text, possible colors: green, blue and red."""
         if color == 'green':
             print(Out.GREEN + text + Out.ENDC)
@@ -54,9 +55,17 @@ class Out:
             print(Out.GRAY + text + Out.ENDC)
 
     @staticmethod
-    def white_print(_, text):
+    def _white_print(_, text):
         """Prints text."""
         print(text)
+
+    @staticmethod
+    def set(colorize_output):
+        """Sets the default value."""
+        if colorize_output:
+            Out.print = Out._color_print
+        else:
+            Out.print = Out._white_print
 
 
 # ************************************************************
@@ -88,7 +97,8 @@ class TheParser(HTMLParser):
 
         if last_char.isspace():
             if text[0] in [' ', '\t']:
-                # Squeeze spaces, unless they are intended.
+                # Squeeze spaces, unless they are intended (intended are those in
+                # `text` variable).
                 self.out = self.out.rstrip(' \t') + text
             else:
                 if last_char == text[0] == '\n':
@@ -143,6 +153,7 @@ class TheParser(HTMLParser):
             self._append('\n')
         else:
             squeezed_data = self._squeeze_whitespace(data)
+            # TODO (only after r/\n\s*/):
             # This is not 100% correct, but usually this is white-space between two
             # tags, each on its own line. This is common and looks ugly in a terminal,
             # so I decided to filter it.
@@ -151,14 +162,55 @@ class TheParser(HTMLParser):
 
     @staticmethod
     def unhtml(text):
-        """Use parser on given `text` and return the result."""
+        """Uses parser on given `text` and returns the result."""
         parser = TheParser()
         parser.feed(text)
         return parser.out
 
 
 # ************************************************************
-#  Other auxiliary classes.
+#  Wrap
+# ************************************************************
+
+class Wrap:
+    """Class for wrapping text on given width. It must be configured the same
+       way as class `Out`: `set` method and then `wrap` method."""
+
+    _wrap_size = 0
+
+    @staticmethod
+    def _make_wrap(text):
+        """Function wrap text."""
+        def wrap_line(line):
+            """Function wraps one line of unintended (3 spaces) code."""
+            if line[0:3] == '   ':
+                return line
+            return '\n'.join(
+                wrap(line, Wrap._wrap_size, drop_whitespace=True, break_long_words=False))
+
+        lines = text.split('\n')
+        lines2 = [wrap_line(l) for l in lines]
+        text_wrapped = '\n'.join(lines2)
+        return text_wrapped
+
+    @staticmethod
+    def _no_wrap(text):
+        """Function does not wrap anything."""
+        return text
+
+    @staticmethod
+    def set(wrap_size):
+        """Sets the default value."""
+        Wrap._wrap_size = wrap_size
+        if wrap_size == 0:
+            Wrap.wrap = Wrap._no_wrap
+        else:
+            Wrap.wrap = Wrap._make_wrap
+
+
+
+# ************************************************************
+#  Feed-related classes.
 # ************************************************************
 
 class FeedEntry:
@@ -232,19 +284,20 @@ def process_cmd_arguments():
         description='Utility for displaying Arch news feed in console.')
 
     parser.add_argument(
-        '-w', help='wrap length, zero for no wrap, default: ' + str(WRAP_SIZE),
+        '-w', '--wrap', help='wrap length, zero for no wrap, default: ' + str(WRAP_SIZE),
         type=int, default=WRAP_SIZE, dest='wrap_size')
 
     parser.add_argument(
-        '-c', help='do not print in color, default is colorized output',
+        '-c', '--color', help='do not print in color, default is colorized output',
         default=COLORIZE_OUTPUT, dest='colorize_output', action='store_false')
 
     parser.add_argument(
-        '-n', help='how many entries to show, zero for all, default: ' + str(NUM_ENTRIES),
+        '-n', '--num-entries',
+        help='how many entries to show, zero for all, default: ' + str(NUM_ENTRIES),
         type=int, default=NUM_ENTRIES, dest='num_entries')
 
     parser.add_argument(
-        '-r', help='print newest entries first, by default last entries are last',
+        '-r', '--reversed', help='print newest entries first, by default newest entries are last',
         default=ORDER, dest='order', action='store_false')
 
     return parser.parse_args()
@@ -265,38 +318,15 @@ def main(args):
     # items = FeedParser.parse_feed(f)
     # f.close()
 
-    def make_wrap(text):
-        """Function wrap text."""
-        def wrap_line(line):
-            """Function wraps one line of unintended (3 spaces) code."""
-            if line[0:3] == '   ':
-                return line
-            return '\n'.join(
-                wrap(line, args.wrap_size, drop_whitespace=True, break_long_words=False))
-
-        lines = text.split('\n')
-        lines2 = [wrap_line(l) for l in lines]
-        text_wrapped = '\n'.join(lines2)
-        return text_wrapped
-
-    def nowrap(text):
-        """Function does not wrap anything."""
-        return text
+    # Set wrap according parameters.
+    Wrap.set(args.wrap_size)
 
     # Set color output.
-    if args.colorize_output:
-        Out.print = Out.color_print
-    else:
-        Out.print = Out.white_print
+    Out.set(args.colorize_output)
 
-    # Set default locale (or string like e.g. 'cs_CZ.UTF-8').
+    # Set default locale ('' is for the system locale, otherwise
+    # e.g. 'cs_CZ.UTF-8' can be used).
     locale.setlocale(locale.LC_ALL, '')
-
-    # Set wrap according parameters.
-    if args.wrap_size == 0:
-        wrap_func = nowrap
-    else:
-        wrap_func = make_wrap
 
     # Get only given number of entries.
     if args.num_entries > 0:
@@ -304,16 +334,21 @@ def main(args):
 
     # Set correct order.
     if args.order:
-        items = items[::-1]  # `reversed` cannot be used because it cannot be indexed
+        # Function `reversed` cannot be used, it returns iterator
+        # that cannot be indexed.
+        items = items[::-1]
 
     for item in items:
-        item.print(wrap_func)
-        if item != items[-1]:
+        item.print(Wrap.wrap)
+        if item == items[-1]:
+            print()
+        else:
             print('\n\n')
 
 
 # Run the program.
 main(process_cmd_arguments())
 
+# TODO: add return codes
 
 # EOF
