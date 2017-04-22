@@ -125,7 +125,9 @@ class TheParser(HTMLParser):
             self._append(' \u2022 ')  # Bullet Unicode symbol.
 
     def handle_endtag(self, tag):
-        self._stack.pop()
+        # HTML might be invalid, so check the emptiness.
+        if self._stack:
+            self._stack.pop()
 
         if tag in ['p', 'div']:
             self._append('\n\n')
@@ -153,12 +155,12 @@ class TheParser(HTMLParser):
             self._append('\n')
         else:
             squeezed_data = self._squeeze_whitespace(data)
-            # TODO (only after r/\n\s*/):
-            # This is not 100% correct, but usually this is white-space between two
-            # tags, each on its own line. This is common and looks ugly in a terminal,
-            # so I decided to filter it.
-            if squeezed_data != ' ':
+            # Do not allow spaces at a paragraph beginning.
+            if squeezed_data != ' ' or (self.out and self.out[-1] != '\n'):
                 self._append(squeezed_data)
+
+    def error(self, message):
+        raise SyntaxError('Error when parsing message: ' + message)
 
     @staticmethod
     def unhtml(text):
@@ -227,7 +229,10 @@ class FeedEntry:
         Out.print('blue', time.strftime('%x %X', self.time))
         Out.print('green', self.title)
         print()
-        text = TheParser.unhtml(self.description)
+        try:
+            text = TheParser.unhtml(self.description)
+        except SyntaxError as err:
+            text = str(err)
         text = text.strip()
         print(wrap_func(text))
 
@@ -310,7 +315,7 @@ def main(args):
         http_request = request.urlopen(FEED_URL)
     except request.URLError:
         print('Error when trying to fetch Arch Feed News :-(')
-        return
+        return 1
     items = FeedParser.parse_feed(http_request)
 
     # Debug: read from file `./feed`.
@@ -345,10 +350,11 @@ def main(args):
         else:
             print('\n\n')
 
+    return 0
+
 
 # Run the program.
-main(process_cmd_arguments())
+exit(main(process_cmd_arguments()))
 
-# TODO: add return codes
 
 # EOF
