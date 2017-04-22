@@ -9,9 +9,9 @@ licence: MIT
 """
 
 import locale
-import time
 from argparse import ArgumentParser
-from email.utils import parsedate
+from datetime import datetime
+from email.utils import parsedate_tz, mktime_tz
 from html.parser import HTMLParser
 from re import sub
 from textwrap import wrap
@@ -217,8 +217,8 @@ class Wrap:
 
 class FeedEntry:
     """Represents single news feed entry."""
-    def __init__(self, time_, title, link, description):
-        self.time = time_
+    def __init__(self, time, title, link, description):
+        self.time = time
         self.title = title
         self.link = link
         self.description = description
@@ -226,7 +226,7 @@ class FeedEntry:
     def print(self, wrap_func):
         """Prints news feed entry."""
         Out.print('gray', self.link)
-        Out.print('blue', time.strftime('%x %X', self.time))
+        Out.print('blue', self.time.strftime('%x %X'))
         Out.print('green', self.title)
         print()
         try:
@@ -254,11 +254,11 @@ class FeedParser:
         return sub_el_text
 
     @staticmethod
-    def _convert_time(pub_date):
-        date = parsedate(pub_date)
-        time_struct = time.mktime(date)
-        time_formatted = time.gmtime(time_struct)
-        return time_formatted
+    def _convert_time(date_rfc2822):
+        date_tuple = parsedate_tz(date_rfc2822)
+        timestamp = mktime_tz(date_tuple)
+        obj = datetime.fromtimestamp(timestamp)
+        return obj
 
     @staticmethod
     def parse_feed(body):
@@ -286,7 +286,9 @@ class FeedParser:
 def process_cmd_arguments():
     """Function for processing command line arguments."""
     parser = ArgumentParser(
-        description='Utility for displaying Arch news feed in console.')
+        description='Utility for displaying Arch news feed in console.',
+        epilog='Date and time is converted into local time!'
+    )
 
     parser.add_argument(
         '-w', '--wrap', help='wrap length, zero for no wrap, default: ' + str(WRAP_SIZE),
