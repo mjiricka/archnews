@@ -330,6 +330,19 @@ class GrepFilter(Filter):
     def filter(self, items):
         return filter(self._test, items)
 
+class OrderFilter(Filter):
+    """Filter filter according order of item."""
+    def __init__(self):
+        self._order = None
+
+    def set_filter(self, user_input):
+        self._order = user_input
+
+    def filter(self, items):
+        if self._order > 0:
+            items = items[0:self._order]
+        return items
+
 
 # ************************************************************
 #  main
@@ -340,7 +353,8 @@ def process_cmd_arguments():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawTextHelpFormatter,
         description='Utility for displaying Arch news feed in console.',
-        epilog='Date and time is converted into local time!')
+        epilog='''Date and time is converted into local time!
+Filters are executed in following order: `-s`, `-g` and `-n` (`-n` is last) and can be combined.''')
 
     parser.add_argument(
         '-w', '--wrap', help='wrap length, zero for no wrap, default: ' + str(WRAP_SIZE),
@@ -401,11 +415,7 @@ def main(args):
     # e.g. 'cs_CZ.UTF-8' can be used).
     locale.setlocale(locale.LC_ALL, '')
 
-    # Get only given number of entries. (Only if no --since or --grep filter were set.)
-    if not args.since or not args.grep:
-        if args.num_entries > 0:
-            items = items[0:args.num_entries]
-
+    # Pipe of filters:
     if args.since:
         itemfilter = SinceFilter()
         try:
@@ -419,6 +429,10 @@ def main(args):
         itemfilter = GrepFilter()
         itemfilter.set_filter(args.grep)
         items = list(itemfilter.filter(items))
+
+    order_filter = OrderFilter()
+    order_filter.set_filter(args.num_entries)
+    items = order_filter.filter(items)
 
     # Set correct order.
     if args.order:
