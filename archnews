@@ -9,8 +9,8 @@ licence: MIT
 """
 
 import locale
-from argparse import ArgumentParser
-from datetime import datetime
+import argparse
+from datetime import datetime, timedelta
 from email.utils import parsedate_tz, mktime_tz
 from html.parser import HTMLParser
 from re import sub
@@ -210,7 +210,6 @@ class Wrap:
             Wrap.wrap = Wrap._make_wrap
 
 
-
 # ************************************************************
 #  Feed-related classes.
 # ************************************************************
@@ -278,6 +277,58 @@ class FeedParser:
         return items
 
 
+# ************************************************************
+#  Filters
+# ************************************************************
+
+class Filter:
+    """Base class for application filters."""
+
+    def set_filter(self, user_input):
+        """Sets filter according input given by an user."""
+        pass
+
+    def filter(self, items):
+        """Filter given list of items according filter rules."""
+        pass
+
+class SinceFilter(Filter):
+    """Filtering according date."""
+    def __init__(self):
+        self._since_filter = None
+
+    def set_filter(self, user_input):
+        if '-' in user_input:
+            # It should be date in format: YYYY-mm-dd
+            self._since_filter = datetime.strptime(user_input, '%Y-%m-%d')
+        else:
+            num_days = int(user_input)
+            # Get date that is `num_days` before today and time is such as
+            # all times the day `num_days`-before today will be later.
+            self._since_filter = (
+                datetime.combine(
+                    datetime.today().date() - timedelta(days=num_days),
+                    datetime.min.time()))
+
+    def filter(self, items):
+        return filter(lambda item: self._since_filter < item.time, items)
+
+class GrepFilter(Filter):
+    """Filtering according text."""
+    def __init__(self):
+        self._grep_filter = None
+
+    def set_filter(self, user_input):
+        self._grep_filter = user_input.lower()
+
+    def _test(self, item):
+        return (
+            self._grep_filter in item.title.lower() or
+            self._grep_filter in item.description.lower())
+
+    def filter(self, items):
+        return filter(self._test, items)
+
 
 # ************************************************************
 #  main
@@ -285,10 +336,10 @@ class FeedParser:
 
 def process_cmd_arguments():
     """Function for processing command line arguments."""
-    parser = ArgumentParser(
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
         description='Utility for displaying Arch news feed in console.',
-        epilog='Date and time is converted into local time!'
-    )
+        epilog='Date and time is converted into local time!')
 
     parser.add_argument(
         '-w', '--wrap', help='wrap length, zero for no wrap, default: ' + str(WRAP_SIZE),
@@ -306,6 +357,18 @@ def process_cmd_arguments():
     parser.add_argument(
         '-r', '--reversed', help='print newest entries first, by default newest entries are last',
         default=ORDER, dest='order', action='store_false')
+
+    parser.add_argument(
+        '-s', '--since', help='''show only entries newer than given date, it can be set as:
+integer: entries released before given number of days,
+YYYY-mm-dd format: entries released before given date
+(In both cases time is not considered, only date!)''',
+        dest='since')
+
+    parser.add_argument(
+        '-g', '--grep', help='''show only entries that has given string in title or description
+(Description containing HTML tag is searched!)''',
+        dest='grep')
 
     return parser.parse_args()
 
@@ -335,9 +398,24 @@ def main(args):
     # e.g. 'cs_CZ.UTF-8' can be used).
     locale.setlocale(locale.LC_ALL, '')
 
-    # Get only given number of entries.
-    if args.num_entries > 0:
-        items = items[0:args.num_entries]
+    # Get only given number of entries. (Only if no --since or --grep filter were set.)
+    if not args.since or not args.grep:
+        if args.num_entries > 0:
+            items = items[0:args.num_entries]
+
+    if args.since:
+        itemfilter = SinceFilter()
+        try:
+            itemfilter.set_filter(args.since)
+        except:
+            print('Bad filter: ' + args.since)
+            exit(1)
+        items = list(itemfilter.filter(items))
+
+    if args.grep:
+        itemfilter = GrepFilter()
+        itemfilter.set_filter(args.grep)
+        items = list(itemfilter.filter(items))
 
     # Set correct order.
     if args.order:
