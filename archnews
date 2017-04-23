@@ -341,11 +341,6 @@ Filters are executed in following order: `-s`, `-g` and `-n` (`-n` is last) and 
         default=False, dest='stdin', action='store_true')
 
     parser.add_argument(
-        '-n', '--num-entries',
-        help='how many entries to show, zero for all, default: ' + str(NUM_ENTRIES),
-        type=int, default=NUM_ENTRIES, dest='num_entries')
-
-    parser.add_argument(
         '-r', '--reversed', help='print newest entries first, by default newest entries are last',
         default=ORDER, dest='order', action='store_false')
 
@@ -361,7 +356,23 @@ YYYY-mm-dd format: entries released before given date
 (Description containing HTML tag is searched!)''',
         dest='grep')
 
-    return parser.parse_args()
+    parser.add_argument(
+        '-n', '--num-entries',
+        help='''how many entries to show, zero for all, defaults:
+if no other filter is set: ''' + str(NUM_ENTRIES) + '''
+otherwise zero''',
+        type=int, default=-1, dest='num_entries')
+
+    args = parser.parse_args()
+
+    # Set default for `num_entries`.
+    if args.num_entries == -1:
+        if args.since or args.grep:
+            args.num_entries = 0
+        else:
+            args.num_entries = NUM_ENTRIES
+
+    return args
 
 
 def main(args):
