@@ -8,8 +8,9 @@ author: Martin Jiřička (mjiricka@gmail.com), 2017
 licence: MIT
 """
 
-import locale
 import argparse
+import locale
+import sys
 from datetime import datetime, timedelta
 from email.utils import parsedate_tz, mktime_tz
 from html.parser import HTMLParser
@@ -350,6 +351,10 @@ def process_cmd_arguments():
         default=COLORIZE_OUTPUT, dest='colorize_output', action='store_false')
 
     parser.add_argument(
+        '-i', '--stdin', help='read feed from stdin, do not fetch data from the Internet',
+        default=False, dest='stdin', action='store_true')
+
+    parser.add_argument(
         '-n', '--num-entries',
         help='how many entries to show, zero for all, default: ' + str(NUM_ENTRIES),
         type=int, default=NUM_ENTRIES, dest='num_entries')
@@ -376,17 +381,15 @@ YYYY-mm-dd format: entries released before given date
 def main(args):
     """Here the interesting part of the script starts."""
 
-    try:
-        http_request = request.urlopen(FEED_URL)
-    except request.URLError:
-        print('Error when trying to fetch Arch Feed News :-(')
-        return 1
-    items = FeedParser.parse_feed(http_request)
-
-    # Debug: read from file `./feed`.
-    # f = open('./feed', 'rb')
-    # items = FeedParser.parse_feed(f)
-    # f.close()
+    if args.stdin:
+        items = FeedParser.parse_feed(sys.stdin)
+    else:
+        try:
+            http_request = request.urlopen(FEED_URL)
+        except request.URLError:
+            print('Error when trying to fetch Arch Feed News :-(')
+            return 1
+        items = FeedParser.parse_feed(http_request)
 
     # Set wrap according parameters.
     Wrap.set(args.wrap_size)
