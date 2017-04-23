@@ -282,66 +282,38 @@ class FeedParser:
 #  Filters
 # ************************************************************
 
-class Filter:
-    """Base class for application filters."""
+def since_filter(user_input, items):
+    """Filtering according time."""
+    if '-' in user_input:
+        # It should be date in format: YYYY-mm-dd
+        sfilter = datetime.strptime(user_input, '%Y-%m-%d')
+    else:
+        num_days = int(user_input)
+        # Get date that is `num_days` before today and time is such as
+        # all times the day `num_days`-before today will be later.
+        sfilter = (
+            datetime.combine(
+                datetime.today().date() - timedelta(days=num_days),
+                datetime.min.time()))
+    return filter(lambda item: sfilter < item.time, items)
 
-    def set_filter(self, user_input):
-        """Sets filter according input given by an user."""
-        pass
-
-    def filter(self, items):
-        """Filter given list of items according filter rules."""
-        pass
-
-class SinceFilter(Filter):
-    """Filtering according date."""
-    def __init__(self):
-        self._since_filter = None
-
-    def set_filter(self, user_input):
-        if '-' in user_input:
-            # It should be date in format: YYYY-mm-dd
-            self._since_filter = datetime.strptime(user_input, '%Y-%m-%d')
-        else:
-            num_days = int(user_input)
-            # Get date that is `num_days` before today and time is such as
-            # all times the day `num_days`-before today will be later.
-            self._since_filter = (
-                datetime.combine(
-                    datetime.today().date() - timedelta(days=num_days),
-                    datetime.min.time()))
-
-    def filter(self, items):
-        return filter(lambda item: self._since_filter < item.time, items)
-
-class GrepFilter(Filter):
+def grep_filter(user_input, items):
     """Filtering according text."""
-    def __init__(self):
-        self._grep_filter = None
+    gfilter = user_input.lower()
 
-    def set_filter(self, user_input):
-        self._grep_filter = user_input.lower()
-
-    def _test(self, item):
+    def test(item):
+        """Checks for `gfilter` in title and description."""
         return (
-            self._grep_filter in item.title.lower() or
-            self._grep_filter in item.description.lower())
+            gfilter in item.title.lower() or
+            gfilter in item.description.lower())
 
-    def filter(self, items):
-        return filter(self._test, items)
+    return filter(test, items)
 
-class OrderFilter(Filter):
+def order_filter(order, items):
     """Filter filter according order of item."""
-    def __init__(self):
-        self._order = None
-
-    def set_filter(self, user_input):
-        self._order = user_input
-
-    def filter(self, items):
-        if self._order > 0:
-            items = items[0:self._order]
-        return items
+    if order > 0:
+        items = items[0:order]
+    return items
 
 
 # ************************************************************
@@ -417,22 +389,14 @@ def main(args):
 
     # Pipe of filters:
     if args.since:
-        itemfilter = SinceFilter()
         try:
-            itemfilter.set_filter(args.since)
+            items = list(since_filter(args.since, items))
         except:
             print('Bad filter: ' + args.since)
             exit(1)
-        items = list(itemfilter.filter(items))
-
     if args.grep:
-        itemfilter = GrepFilter()
-        itemfilter.set_filter(args.grep)
-        items = list(itemfilter.filter(items))
-
-    order_filter = OrderFilter()
-    order_filter.set_filter(args.num_entries)
-    items = order_filter.filter(items)
+        items = list(grep_filter(args.grep, items))
+    items = order_filter(args.num_entries, items)
 
     # Set correct order.
     if args.order:
