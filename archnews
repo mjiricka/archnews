@@ -10,6 +10,7 @@ licence: MIT
 
 import argparse
 import locale
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_tz, mktime_tz
@@ -220,6 +221,8 @@ class Wrap:
 #  Feed-related classes.
 # ************************************************************
 
+REMOVE_TAGS_REGEXP = re.compile(r'<.*?>')
+
 class FeedEntry:
     """Represents single news feed entry."""
     def __init__(self, time, title, link, description):
@@ -240,6 +243,10 @@ class FeedEntry:
             text = str(err)
         text = text.strip()
         print(wrap_func(text))
+
+    def get_plain_description(self):
+        """Returns description without tags."""
+        return REMOVE_TAGS_REGEXP.sub('', self.description)
 
 
 class FeedParser:
@@ -315,7 +322,7 @@ def grep_filter(user_input, items):
         """Checks for `gfilter` in title and description."""
         return (
             gfilter in item.title.lower() or
-            gfilter in item.description.lower())
+            gfilter in item.get_plain_description().lower())
 
     return filter(test, items)
 
@@ -411,8 +418,7 @@ YYYY-mm-dd format: entries released before given date
         dest='since')
 
     parser.add_argument(
-        '-g', '--grep', help='''show only entries that has given string in title or description
-(Description containing HTML tag is searched!)''',
+        '-g', '--grep', help='''show only entries that has given string in title or description''',
         dest='grep')
 
     parser.add_argument(
