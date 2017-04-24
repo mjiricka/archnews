@@ -11,14 +11,15 @@ licence: MIT
 import argparse
 import locale
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_tz, mktime_tz
 from html.parser import HTMLParser
+from os import makedirs, path
+from os.path import expanduser
 from re import sub
 from textwrap import wrap
 from urllib import request
 from xml.dom import minidom
-
 
 
 # ************************************************************
@@ -26,6 +27,10 @@ from xml.dom import minidom
 # ************************************************************
 
 FEED_URL = 'https://www.archlinux.org/feeds/news/'
+DATA_FILE_REL_PATH = '~/.config/archnews'
+DATA_FILE_PATH = expanduser(DATA_FILE_REL_PATH)
+
+DATA_FILE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
 
 WRAP_SIZE = 100  # Zero for no wrap.
 COLORIZE_OUTPUT = True
@@ -257,7 +262,7 @@ class FeedParser:
     def _convert_time(date_rfc2822):
         date_tuple = parsedate_tz(date_rfc2822)
         timestamp = mktime_tz(date_tuple)
-        obj = datetime.fromtimestamp(timestamp)
+        obj = datetime.fromtimestamp(timestamp, timezone.utc)
         return obj
 
     @staticmethod
@@ -284,17 +289,22 @@ class FeedParser:
 
 def since_filter(user_input, items):
     """Filtering according time."""
-    if '-' in user_input:
+    if isinstance(user_input, datetime):
+        sfilter = user_input
+    elif '-' in user_input:
         # It should be date in format: YYYY-mm-dd
         sfilter = datetime.strptime(user_input, '%Y-%m-%d')
+        # Set correct timezone!
+        sfilter = sfilter.replace(tzinfo=timezone.utc)
     else:
         num_days = int(user_input)
         # Get date that is `num_days` before today and time is such as
         # all times the day `num_days`-before today will be later.
         sfilter = (
             datetime.combine(
+                # TODO: Somewhat get also date in UTC?
                 datetime.today().date() - timedelta(days=num_days),
-                datetime.min.time()))
+                datetime.min.time(), tzinfo=timezone.utc))
     return filter(lambda item: sfilter < item.time, items)
 
 def grep_filter(user_input, items):
@@ -317,6 +327,46 @@ def order_filter(order, items):
 
 
 # ************************************************************
+#  Unread
+# ************************************************************
+
+# TODO: Pass date which would be exact time when items where displayed?
+def update_data_file():
+    """Stores current date into data file."""
+    makedirs(path.dirname(DATA_FILE_PATH), exist_ok=True)
+
+    now = datetime.now(timezone.utc)
+    now_formatted = now.strftime(DATA_FILE_FORMAT)
+
+    with open(DATA_FILE_PATH, 'w') as f:
+        content = (
+            '# This file stores data for "archnews" utility.\n' +
+            now_formatted + '\n')
+        f.write(content)
+
+def read_data_file():
+    """Reads date from data file, `None` is returned if an error occurs."""
+    try:
+        with open(DATA_FILE_PATH, 'r') as f:
+            content = f.read()
+            lines = content.split('\n')
+    except:
+        return None
+
+    def find_line(line):
+        """Strips non-commented lines that has no content."""
+        linestrip = line.strip()
+        return len(linestrip) > 0 and linestrip[0] != '#'
+
+    datestr = next(filter(find_line, lines), None)
+
+    if datestr:
+        return datetime.strptime(datestr, DATA_FILE_FORMAT)
+    else:
+        return None
+
+
+# ************************************************************
 #  main
 # ************************************************************
 
@@ -326,7 +376,12 @@ def process_cmd_arguments():
         formatter_class=argparse.RawTextHelpFormatter,
         description='Utility for displaying Arch news feed in console.',
         epilog='''Date and time is converted into local time!
-Filters are executed in following order: `-s`, `-g` and `-n` (`-n` is last) and can be combined.''')
+
+Filters are executed in following order: `-u`, `-s`, `-g` and `-n` (`-n` is last)
+and can be combined.
+
+When -u parameter is used, last time of check is stored inside file {}.
+'''.format(DATA_FILE_REL_PATH))
 
     parser.add_argument(
         '-w', '--wrap', help='wrap length, zero for no wrap, default: ' + str(WRAP_SIZE),
@@ -343,6 +398,10 @@ Filters are executed in following order: `-s`, `-g` and `-n` (`-n` is last) and 
     parser.add_argument(
         '-r', '--reversed', help='print newest entries first, by default newest entries are last',
         default=ORDER, dest='order', action='store_false')
+
+    parser.add_argument(
+        '-u', '--unread', help='''display only previously unread entries''',
+        default=False, dest='unread', action='store_true')
 
     parser.add_argument(
         '-s', '--since', help='''show only entries newer than given date, it can be set as:
@@ -367,13 +426,25 @@ otherwise zero''',
 
     # Set default for `num_entries`.
     if args.num_entries == -1:
-        if args.since or args.grep:
+        if args.since or args.grep or args.unread:
             args.num_entries = 0
         else:
             args.num_entries = NUM_ENTRIES
 
     return args
 
+def yes_no_prompt(text):
+    """Displays prompt with given `text`. Answer "n" is selected when user enters empty string."""
+    run = True
+    while run:
+        print(text, end='')
+        answer = input()
+        if answer == '':
+            answer = 'n'
+        run = (answer not in 'ynYN')
+        if run:
+            print('Bad input.')
+    return answer.lower()
 
 def main(args):
     """Here the interesting part of the script starts."""
@@ -398,6 +469,12 @@ def main(args):
     # e.g. 'cs_CZ.UTF-8' can be used).
     locale.setlocale(locale.LC_ALL, '')
 
+    # First filter: unread.
+    if args.unread:
+        unread_date = read_data_file()
+        if unread_date:
+            items = list(since_filter(unread_date, items))
+
     # Pipe of filters:
     if args.since:
         try:
@@ -415,12 +492,25 @@ def main(args):
         # that cannot be indexed.
         items = items[::-1]
 
-    for item in items:
-        item.print(Wrap.wrap)
-        if item == items[-1]:
-            print()
-        else:
-            print('\n\n')
+    # Print results.
+    if items:
+        for item in items:
+            item.print(Wrap.wrap)
+            if item == items[-1]:
+                print()
+            else:
+                print('\n\n')
+    else:
+        print('No news to display.')
+
+    if args.unread and items:
+        mark_as_read = yes_no_prompt('Mark messages as read? [y/N]: ')
+        if mark_as_read:
+            try:
+                update_data_file()
+            except:
+                print('Failed to update ' + DATA_FILE_PATH + '!')
+                exit(1)
 
     return 0
 
