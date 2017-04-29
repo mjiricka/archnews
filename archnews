@@ -427,6 +427,14 @@ When -u parameter is used, last time of check is stored inside file {}.
         default=False, dest='unread', action='store_true')
 
     parser.add_argument(
+        '--yes', help='''reply to question whether mark unread entries with yes''',
+        default=False, dest='yes', action='store_true')
+
+    parser.add_argument(
+        '--no', help='''reply to question whether mark unread entries with no''',
+        default=False, dest='no', action='store_true')
+
+    parser.add_argument(
         '-s', '--since', help='''show only entries newer than given date, it can be set as:
 integer: entries released before given number of days,
 YYYY-mm-dd format: entries released before given date
@@ -446,6 +454,14 @@ otherwise zero (= all in feed)''',
         type=int, default=-1, dest='num_entries')
 
     args = parser.parse_args()
+
+    # Yes/no parameters
+    if args.yes and args.no:
+        print('Cannot use both --yes and --no arguments.', file=sys.stderr)
+        exit(2)
+    if not args.unread and (args.yes or args.no):
+        print('Cannot use --yes or --no arguments without --unread.', file=sys.stderr)
+        exit(2)
 
     # Set default for `num_entries`.
     if args.num_entries == -1:
@@ -541,7 +557,13 @@ def main(args):
         result_code = 1
 
     if args.unread and items:
-        user_input = yes_no_prompt('Mark messages as read? [y/N]: ')
+        if args.yes:
+            user_input = 'y'
+        elif args.no:
+            user_input = 'n'
+        else:
+            user_input = yes_no_prompt('Mark messages as read? [y/N]: ')
+
         if user_input == 'y':
             try:
                 update_data_file(newest_time)
