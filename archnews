@@ -462,7 +462,7 @@ def filter_pipe(items, args):
             items = list(since_filter(args.since, items))
         except:
             print('Bad filter: ' + args.since, file=sys.stderr)
-            exit(1)
+            exit(2)
     if args.grep:
         items = list(grep_filter(args.grep, items))
     items = order_filter(args.num_entries, items)
@@ -471,6 +471,7 @@ def filter_pipe(items, args):
 
 def main(args):
     """Here the interesting part of the script starts."""
+    result_code = 0
 
     if args.stdin:
         items = FeedParser.parse_feed(sys.stdin)
@@ -513,7 +514,8 @@ def main(args):
             else:
                 print('\n\n')
     else:
-        print('No news to display.')
+        print('No news to display.', file=sys.stderr)
+        result_code = 1
 
     if args.unread and items:
         user_input = yes_no_prompt('Mark messages as read? [y/N]: ')
@@ -522,9 +524,9 @@ def main(args):
                 update_data_file(newest_time)
             except:
                 print('Failed to update ' + DATA_FILE_PATH + '!', file=sys.stderr)
-                exit(1)
+                exit(3)
 
-    return 0
+    return result_code
 
 
 # Run the program.
