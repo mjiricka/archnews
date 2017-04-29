@@ -48,20 +48,40 @@ class Out:
     BLUE = '\033[94m'
     GREEN = '\033[92m'
     GRAY = '\033[90m'
+    YELLOW = '\033[93m'
     ENDC = '\033[0m'
 
-    @staticmethod
-    def _color_print(color, text):
-        """Prints colored text, possible colors: green, blue and red."""
-        if color == 'green':
-            print(Out.GREEN + text + Out.ENDC)
-        elif color == 'blue':
-            print(Out.BLUE + text + Out.ENDC)
-        elif color == 'gray':
-            print(Out.GRAY + text + Out.ENDC)
+    highlight_word = ''
 
     @staticmethod
-    def _white_print(_, text):
+    def _color_highlight(return_color, text):
+        if Out.highlight_word:
+            regex = '(' + re.escape(Out.highlight_word) + ')'
+            result = re.sub(regex, Out.YELLOW + '\\1' + return_color, text, flags=re.IGNORECASE)
+        else:
+            result = text
+        return result
+
+    @staticmethod
+    def _color_print(color, text, highlight=True):
+        """Prints colored text, possible colors: green, blue and red.
+           Also it can highlight a word."""
+        if color == 'green':
+            col = Out.GREEN
+        elif color == 'blue':
+            col = Out.BLUE
+        elif color == 'gray':
+            col = Out.GRAY
+        elif color == 'none':
+            col = Out.ENDC
+
+        if highlight:
+            print(col + Out._color_highlight(col, text) + Out.ENDC)
+        else:
+            print(col + text + Out.ENDC)
+
+    @staticmethod
+    def _white_print(_color, text, highlight=True):
         """Prints text."""
         print(text)
 
@@ -232,7 +252,7 @@ class FeedEntry:
 
     def print(self, wrap_func):
         """Prints news feed entry."""
-        Out.print('gray', self.link)
+        Out.print('gray', self.link, highlight=False)
         Out.print('blue', self.time.strftime('%x %X'))
         Out.print('green', self.title)
         print()
@@ -241,7 +261,7 @@ class FeedEntry:
         except SyntaxError as err:
             text = str(err)
         text = text.strip()
-        print(wrap_func(text))
+        Out.print('none', wrap_func(text))
 
     def get_plain_description(self):
         """Returns description without tags."""
@@ -414,7 +434,8 @@ YYYY-mm-dd format: entries released before given date
         dest='since')
 
     parser.add_argument(
-        '-g', '--grep', help='''show only entries that has given string in title or description''',
+        '-g', '--grep', help='''show only entries that has given string in title or description
+(search is case-insensitive)''',
         dest='grep')
 
     parser.add_argument(
@@ -488,6 +509,8 @@ def main(args):
 
     # Set color output.
     Out.set(args.colorize_output)
+    if args.grep:
+        Out.highlight_word = args.grep
 
     # Set default locale ('' is for the system locale, otherwise
     # e.g. 'cs_CZ.UTF-8' can be used).
