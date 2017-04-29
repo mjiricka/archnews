@@ -486,7 +486,7 @@ def main(args):
         try:
             items = list(since_filter(args.since, items))
         except:
-            print('Bad filter: ' + args.since)
+            print('Bad filter: ' + args.since, file=sys.stderr)
             exit(1)
     if args.grep:
         items = list(grep_filter(args.grep, items))
@@ -515,7 +515,7 @@ def main(args):
             try:
                 update_data_file()
             except:
-                print('Failed to update ' + DATA_FILE_PATH + '!')
+                print('Failed to update ' + DATA_FILE_PATH + '!', file=sys.stderr)
                 exit(1)
 
     return 0
