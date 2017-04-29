@@ -17,7 +17,6 @@ from email.utils import parsedate_tz, mktime_tz
 from html.parser import HTMLParser
 from os import makedirs, path
 from os.path import expanduser
-from re import sub
 from textwrap import wrap
 from urllib import request
 from xml.dom import minidom
@@ -91,7 +90,7 @@ class TheParser(HTMLParser):
     @staticmethod
     def _squeeze_whitespace(text):
         """Squeezes whitespaces into one single space."""
-        return sub(r'\s+', ' ', text)
+        return re.sub(r'\s+', ' ', text)
 
     def _append(self, text):
         if not text:
@@ -451,6 +450,27 @@ def yes_no_prompt(text):
             print('Bad input.')
     return answer.lower()
 
+def filter_pipe(items, args):
+    """Filter items according command line arguments."""
+    # First filter: unread.
+    if args.unread:
+        unread_date = read_data_file()
+        if unread_date:
+            items = list(since_filter(unread_date, items))
+
+    # Pipe of filters:
+    if args.since:
+        try:
+            items = list(since_filter(args.since, items))
+        except:
+            print('Bad filter: ' + args.since, file=sys.stderr)
+            exit(1)
+    if args.grep:
+        items = list(grep_filter(args.grep, items))
+    items = order_filter(args.num_entries, items)
+
+    return items
+
 def main(args):
     """Here the interesting part of the script starts."""
 
@@ -474,22 +494,7 @@ def main(args):
     # e.g. 'cs_CZ.UTF-8' can be used).
     locale.setlocale(locale.LC_ALL, '')
 
-    # First filter: unread.
-    if args.unread:
-        unread_date = read_data_file()
-        if unread_date:
-            items = list(since_filter(unread_date, items))
-
-    # Pipe of filters:
-    if args.since:
-        try:
-            items = list(since_filter(args.since, items))
-        except:
-            print('Bad filter: ' + args.since, file=sys.stderr)
-            exit(1)
-    if args.grep:
-        items = list(grep_filter(args.grep, items))
-    items = order_filter(args.num_entries, items)
+    items = filter_pipe(items, args)
 
     # Set correct order.
     if args.order:
