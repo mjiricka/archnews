@@ -423,9 +423,9 @@ YYYY-mm-dd format: entries released before given date
 
     parser.add_argument(
         '-n', '--num-entries',
-        help='''how many entries to show, zero for all, defaults:
+        help='''how many entries to show, zero or negative for all in feed (probably 10), defaults:
 if no other filter is set: ''' + str(NUM_ENTRIES) + '''
-otherwise zero''',
+otherwise zero (= all in feed)''',
         type=int, default=-1, dest='num_entries')
 
     args = parser.parse_args()
