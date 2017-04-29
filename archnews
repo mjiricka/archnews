@@ -335,13 +335,11 @@ def order_filter(order, items):
 #  Unread
 # ************************************************************
 
-# TODO: Pass date which would be exact time when items where displayed?
-def update_data_file():
+def update_data_file(time):
     """Stores current date into data file."""
     makedirs(path.dirname(DATA_FILE_PATH), exist_ok=True)
 
-    now = datetime.now(timezone.utc)
-    now_formatted = now.strftime(DATA_FILE_FORMAT)
+    now_formatted = time.strftime(DATA_FILE_FORMAT)
 
     with open(DATA_FILE_PATH, 'w') as f:
         content = (
@@ -504,7 +502,11 @@ def main(args):
 
     # Print results.
     if items:
+        newest_time = items[0].time
+
         for item in items:
+            newest_time = max(item.time, newest_time)
+
             item.print(Wrap.wrap)
             if item == items[-1]:
                 print()
@@ -514,10 +516,10 @@ def main(args):
         print('No news to display.')
 
     if args.unread and items:
-        mark_as_read = yes_no_prompt('Mark messages as read? [y/N]: ')
-        if mark_as_read:
+        user_input = yes_no_prompt('Mark messages as read? [y/N]: ')
+        if user_input == 'y':
             try:
-                update_data_file()
+                update_data_file(newest_time)
             except:
                 print('Failed to update ' + DATA_FILE_PATH + '!', file=sys.stderr)
                 exit(1)
