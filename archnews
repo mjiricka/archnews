@@ -15,8 +15,8 @@ import sys
 from datetime import datetime, timedelta, timezone
 from email.utils import parsedate_tz, mktime_tz
 from html.parser import HTMLParser
-from os import makedirs, path
-from os.path import expanduser
+from os import makedirs, path, environ
+from os.path import expanduser, join
 from textwrap import wrap
 from urllib import request
 from xml.dom import minidom
@@ -27,8 +27,10 @@ from xml.dom import minidom
 # ************************************************************
 
 FEED_URL = 'https://www.archlinux.org/feeds/news/'
-DATA_FILE_REL_PATH = '~/.config/archnews'
-DATA_FILE_PATH = expanduser(DATA_FILE_REL_PATH)
+DATA_HOME_DEFAULT = '~/.local/share/'
+DATA_FILE_DEFAULT_PATH = 'archnews/unread'
+XDG_DATA_HOME = environ.get('XDG_DATA_HOME')
+DATA_FILE_PATH = join(expanduser(XDG_DATA_HOME or DATA_HOME_DEFAULT), DATA_FILE_DEFAULT_PATH)
 
 DATA_FILE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
 
@@ -404,7 +406,7 @@ Filters are executed in following order: `-u`, `-s`, `-g` and `-n` (`-n` is last
 and can be combined.
 
 When -u parameter is used, last time of check is stored inside file {}.
-'''.format(DATA_FILE_REL_PATH))
+'''.format(DATA_FILE_PATH))
 
     parser.add_argument(
         '-w', '--wrap', help='wrap length, zero for no wrap, default: ' + str(WRAP_SIZE),
