@@ -1,0 +1,82 @@
+#/usr/bin/env bash
+
+# Wrapper for pacman that invokes `archnews` command to check Arch news.
+
+
+FEED_URL="https://www.archlinux.org/feeds/news/"
+PACMAN_FULL_PATH="/usr/bin/pacman"
+
+
+# My universal prompt function.
+custom_prompt () {
+    local prompt default reply
+
+    while true; do
+        # Handle second parameter.
+        if [[ "$2" = "Y" ]]; then
+            prompt="Y/n"
+            default=Y
+        elif [[ "$2" = "N" ]]; then
+            prompt="y/N"
+            default=N
+        else
+            prompt="y/n"
+            default=
+        fi
+
+        # User prompt, handle default value if empty input.
+        echo -e -n "$1"
+        read reply
+        if [ -z "$reply" ]; then
+            reply=$default
+        fi
+
+        # Check if the reply is valid.
+        case "$reply" in
+            Y|y|yes|Yes) return 0 ;;
+            N|n|no|No) return 1 ;;
+        esac
+    done
+}
+
+# Check whether "-Syu" or some of its variants like "-Syyuu" were invoked.
+if (echo "$1" | grep -E -- '-S(y[[:alnum:]]*u[[:alnum:]]*|u[[:alnum:]]*y[[:alnum:]]*)') > /dev/null 2>&1
+then
+    # Fetch the feed. Reason:
+    # 1) To make sure that feed will be downloaded at most once.
+    #    (Otherwise it might be donwloaded twice.)
+    # 2) It might happen that some news would appear between downloads.
+    #    Such unread news would be then marked as read.
+    FEED="$(curl -fLs $FEED_URL)"
+
+    # Check whether fetching was OK.
+    if [[ $? -ne 0 ]] ; then
+        # Fetching failed.
+        tmp_prompt="\e[1;34;48m:: \e[1;37;48mFetching of Arch News RSS Feed "
+        tmp_prompt+="\e[1;31;48mfailed\e[1;37;48m! Continue? [Y/n] \e[0m"
+
+        custom_prompt "$tmp_prompt" Y
+
+        [[ $? -eq 1 ]] && exit 1
+    else
+        # Fetching was OK, so show it.
+        echo $FEED | ./archnews --stdin --unread --no
+
+        # Check whether there are some unread messages.
+        if [[ $? -eq 0 ]] ; then
+            # Yes, unread messages.
+            custom_prompt "\e[1;34;48m:: \e[1;37;48mMark them as read and update? [Y/n] \e[0m" Y
+
+            if [[ $? -eq 0 ]] ; then
+                echo $FEED | ./archnews --stdin --unread --yes
+                # Pacman eats last line or something. So one more echo...
+            else
+                exit 1
+            fi
+        fi
+    fi
+fi
+
+# Run the original command.
+exec $PACMAN_FULL_PATH $@
+
