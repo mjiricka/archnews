@@ -393,6 +393,16 @@ def read_data_file():
 #  main
 # ************************************************************
 
+class OrderedNamespace(argparse.Namespace):
+    """Namespace that also keeps order of arguments in `arguments_order` attribute."""
+    def __init__(self, **kwargs):
+        self.__dict__['arguments_order'] = []
+        super(OrderedNamespace, self).__init__(**kwargs)
+
+    def __setattr__(self, attr, value):
+        self.__dict__['arguments_order'].append((attr, value))
+        super(OrderedNamespace, self).__setattr__(attr, value)
+
 def process_cmd_arguments():
     """Function for processing command line arguments."""
     parser = argparse.ArgumentParser(
@@ -453,7 +463,7 @@ if no other filter is set: ''' + str(NUM_ENTRIES) + '''
 otherwise zero (= all in feed)''',
         type=int, default=-1, dest='num_entries')
 
-    args = parser.parse_args()
+    args = parser.parse_args(None, OrderedNamespace())
 
     # Yes/no parameters
     if args.yes and args.no:
@@ -469,6 +479,9 @@ otherwise zero (= all in feed)''',
             args.num_entries = 0
         else:
             args.num_entries = NUM_ENTRIES
+
+    print(args.arguments_order)
+
 
     return args
 
