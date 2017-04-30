@@ -402,7 +402,7 @@ def process_cmd_arguments():
         description='Utility for displaying Arch news feed in console.',
         epilog='''Date and time is converted into local time!
 
-Filters are executed in following order: `-u`, `-s`, `-g` and `-n` (`-n` is last)
+Filters are executed in following order: `-s`, `-g` and `-n` (`-n` is last)
 and can be combined.
 
 When -u parameter is used, last time of check is stored inside file {}.
@@ -453,7 +453,7 @@ YYYY-mm-dd format: entries released before given date
         help='''how many entries to show, zero or negative for all in feed (probably 10), defaults:
 if no other filter is set: ''' + str(NUM_ENTRIES) + '''
 otherwise zero (= all in feed)''',
-        type=int, default=-1, dest='num_entries')
+        type=int, dest='num_entries')
 
     args = parser.parse_args()
 
@@ -465,8 +465,13 @@ otherwise zero (= all in feed)''',
         print('Cannot use --yes or --no arguments without --unread.', file=sys.stderr)
         exit(2)
 
+    # Unread must be the only filter.
+    if args.unread and (args.grep or args.since):
+        print('Cannot use --unread with --since or --grep.', file=sys.stderr)
+        exit(2)
+
     # Set default for `num_entries`.
-    if args.num_entries == -1:
+    if args.num_entries is None:
         if args.since or args.grep or args.unread:
             args.num_entries = 0
         else:
