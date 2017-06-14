@@ -36,8 +36,8 @@ DATA_FILE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
 
 WRAP_SIZE = 100  # Zero for no wrap.
 COLORIZE_OUTPUT = True
-ORDER = True  # True = newest entries last, False = newest entries first
-NUM_ENTRIES = 3  # 0 for all
+ORDER = True  # True = newest news last, False = newest news first
+NUM_NEWS = 3  # 0 for all
 
 
 # ************************************************************
@@ -289,7 +289,7 @@ class FeedParser:
 
     @staticmethod
     def parse_feed(body):
-        """Parse feed and returns list of feed entries."""
+        """Parse feed and returns list of feed news."""
         xmldoc = minidom.parse(body)
         item_list = xmldoc.getElementsByTagName('item')
         items = []
@@ -415,39 +415,39 @@ When -u parameter is used, last time of check is stored inside file {}.
         default=False, dest='stdin', action='store_true')
 
     parser.add_argument(
-        '-r', '--reversed', help='print newest entries first, by default newest entries are last',
+        '-r', '--reversed', help='print newest news first, by default newest news are last',
         default=ORDER, dest='order', action='store_false')
 
     parser.add_argument(
-        '-u', '--unread', help='''display only previously unread entries''',
+        '-u', '--unread', help='''display only previously unread news''',
         default=False, dest='unread', action='store_true')
 
     parser.add_argument(
-        '--yes', help='''reply to question whether mark unread entries with yes''',
+        '--yes', help='''reply to question whether mark unread news with yes''',
         default=False, dest='yes', action='store_true')
 
     parser.add_argument(
-        '--no', help='''reply to question whether mark unread entries with no''',
+        '--no', help='''reply to question whether mark unread news with no''',
         default=False, dest='no', action='store_true')
 
     parser.add_argument(
-        '-s', '--since', help='''show only entries newer than given date, it can be set as:
-integer: entries released before given number of days,
-YYYY-mm-dd format: entries released before given date
+        '-s', '--since', help='''show only news newer than given date, it can be set as:
+integer: news released before given number of days,
+YYYY-mm-dd format: news released before given date
 (In both cases time is not considered, only date!)''',
         dest='since')
 
     parser.add_argument(
-        '-g', '--grep', help='''show only entries that has given string in title or description
+        '-g', '--grep', help='''show only news that has given string in title or description
 (search is case-insensitive)''',
         dest='grep')
 
     parser.add_argument(
-        '-n', '--num-entries',
-        help='''how many entries to show, zero or negative for all in feed (probably 10), defaults:
-if no other filter is set: ''' + str(NUM_ENTRIES) + '''
+        '-n', '--num-news',
+        help='''how many news to show, zero or negative for all in feed (probably 10), defaults:
+if no other filter is set: ''' + str(NUM_NEWS) + '''
 otherwise zero (= all in feed)''',
-        type=int, dest='num_entries')
+        type=int, dest='num_news')
 
     args = parser.parse_args()
 
@@ -464,12 +464,12 @@ otherwise zero (= all in feed)''',
         print('Cannot use --unread with --since or --grep.', file=sys.stderr)
         exit(2)
 
-    # Set default for `num_entries`.
-    if args.num_entries is None:
+    # Set default for `num_news`.
+    if args.num_news is None:
         if args.since or args.grep or args.unread:
-            args.num_entries = 0
+            args.num_news = 0
         else:
-            args.num_entries = NUM_ENTRIES
+            args.num_news = NUM_NEWS
 
     return args
 
@@ -504,7 +504,7 @@ def filter_pipe(items, args):
             exit(2)
     if args.grep:
         items = list(grep_filter(args.grep, items))
-    items = order_filter(args.num_entries, items)
+    items = order_filter(args.num_news, items)
 
     return items
 

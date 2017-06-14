@@ -47,30 +47,30 @@ Show only news that contains given string in title or description. Search is
 case-insensitive. Search will be also highlighted in console output.
 This option is a filter, see section FILTERS for more details.
 
-.IP "\fB\-n\fR NUM_ENTRIES, \fB\-\-num\-entries\fR NUM_ENTRIES"
+.IP "\fB\-n\fR NUM_NEWS, \fB\-\-num\-news\fR NUM_NEWS"
 How many news to show, zero or negative for all in feed. It worth to notice
 RSS feed contains last 10 news, so numbers higher than 10 will not produce more.
 Default number is 3 if no other filter is set, otherwise 0.
 This option is a filter, see section FILTERS for more details.
 
 .IP "\fB\-u\fR, \fB\-\-unread\fR"
-Display only previously unread entries.
+Display only previously unread news.
 
 .IP "\fB\-\-yes\fR"
 Can be used only when \fB\-\-unread\fR is set. It marks news as read without asking.
 It is mutually exclusive with \fB\-\-no\fR.
 
 .IP "\fB\-\-no\fR"
-Can be used only when \fB\-\-unread\fR is set. No entries will be marked as read.
+Can be used only when \fB\-\-unread\fR is set. No news will be marked as read.
 It is mutually exclusive with \fB\-\-yes\fR.
 
 
 .SH FILTERS
 .IX Header "FILTERS"
-Options \fB\-\-since\fR, \fB\-\-grep\fR and \fB\-\-num-entries\fR
+Options \fB\-\-since\fR, \fB\-\-grep\fR and \fB\-\-num-news\fR
 are filters. It means they can filter news according certain criterion. These filters
-can be combined (e.g. use \fB\-\-grep\fR together with \fB\-\-num-entries\fR),
-but \fB\-\-num-entries\fR will be always applied as the last filter.
+can be combined (e.g. use \fB\-\-grep\fR together with \fB\-\-num-news\fR),
+but \fB\-\-num-news\fR will be always applied as the last filter.
 
 
 .SH FILES
@@ -97,9 +97,9 @@ Path to home data directory, see FILES section for details.
 
 .SH RETURN CODES
 .IP \fB0\fR
-Everything went well and some entries were shown.
+Everything went well and some news were shown.
 .IP \fB1\fR
-Everything went well but no entries were shown.
+Everything went well but no news were shown.
 .IP \fB2\fR
 Error in parameters.
 .IP \fB3\fR
