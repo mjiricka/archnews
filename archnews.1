@@ -113,6 +113,24 @@ Error in parameters.
 Runtime error occured, e.g. feed cannot be fetched.
 
 
+.SH PACMAN WRAPPER
+\fBarchnews\fR comes with a wrapper for \fBpacman\fR called
+\fBarchnews_wrap\fR, that runs \fBarchnews\fR when upgrading the system
+(\fBpacman -Syu\fR).  The wrapper runs \fBarchnews\fR script with
+\fB--unread\fR option, so one will never miss a news when doing dist-upgrade!
+
+All what is needed to do is to have these two aliases:
+.RS
+.nf
+\fBalias sudo='sudo '\fR  # This enables aliases for commands inside sudo.
+\fBalias pacman=archnews_wrap\fR  # This invokes wrapper whenever pacman is called.
+.fi
+.RE
+The first invocation will list all news in feed. Further invocations will
+display only unread messages. (Of course info about unread messages is stored
+inside user's home directory, it is not system-wide!)
+
+
 .SH BUGS
 Probably some. Would be great if you report them!
 
