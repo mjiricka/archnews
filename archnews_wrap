@@ -60,7 +60,7 @@ then
         [[ $? -eq 1 ]] && exit 1
     else
         # Fetching was OK, so show it.
-        echo $FEED | ./archnews --stdin --unread --no
+        echo $FEED | archnews --stdin --unread --no
 
         # Check whether there are some unread messages.
         if [[ $? -eq 0 ]] ; then
@@ -68,7 +68,7 @@ then
             prompt "\e[1;34;48m:: \e[1;37;48mMark them as read and update? [Y/n] \e[0m" Y
 
             if [[ $? -eq 0 ]] ; then
-                echo $FEED | ./archnews --stdin --unread --yes > /dev/null
+                echo $FEED | archnews --stdin --unread --yes > /dev/null
             else
                 exit 1
             fi
