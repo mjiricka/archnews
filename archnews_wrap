@@ -68,11 +68,13 @@ then
             prompt "\e[1;34;48m:: \e[1;37;48mMark them as read and update? [Y/n] \e[0m" Y
 
             if [[ $? -eq 0 ]] ; then
-                echo $FEED | ./archnews --stdin --unread --yes
-                # Pacman eats last line or something. So one more echo...
+                echo $FEED | ./archnews --stdin --unread --yes > /dev/null
             else
                 exit 1
             fi
+        else
+            # One blank line after message that there are no unread messages.
+            echo
         fi
     fi
 fi
