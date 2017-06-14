@@ -1,3 +1,5 @@
+# Maintainer: Martin Jiřička <mjiricka at gmail dot com>
+
 pkgname=archnews2
 pkgver=0.0.1
 pkgrel=1
@@ -7,7 +9,7 @@ url="https://github.com/mjiricka/archnews"
 license=("MIT")
 depends=("python")
 conflicts=("archnews")
-source=("https://github.com/mjiricka/archnews/archive/v${pkgver}.tar.gz")
+source=("https://github.com/mjiricka/${pkgname%2}/archive/v${pkgver}.tar.gz")
 md5sums=("5c2c81c5880d6851dd0f150cdea572ab")
 
 package() {
