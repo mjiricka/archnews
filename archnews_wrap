@@ -7,16 +7,16 @@ FEED_URL="https://www.archlinux.org/feeds/news/"
 PACMAN_FULL_PATH="/usr/bin/pacman"
 
 
-# My universal prompt function.
-custom_prompt () {
+# Universal prompt function.
+prompt () {
     local prompt default reply
 
     while true; do
         # Handle second parameter.
-        if [[ "$2" = "Y" ]]; then
+        if [[ "$2" = "Y" ]] ; then
             prompt="Y/n"
             default=Y
-        elif [[ "$2" = "N" ]]; then
+        elif [[ "$2" = "N" ]] ; then
             prompt="y/N"
             default=N
         else
@@ -27,7 +27,7 @@ custom_prompt () {
         # User prompt, handle default value if empty input.
         echo -e -n "$1"
         read reply
-        if [ -z "$reply" ]; then
+        if [[ -z "$reply" ]] ; then
             reply=$default
         fi
 
@@ -42,8 +42,8 @@ custom_prompt () {
 # Check whether "-Syu" or some of its variants like "-Syyuu" were invoked.
 if (echo "$1" | grep -E -- '-S(y[[:alnum:]]*u[[:alnum:]]*|u[[:alnum:]]*y[[:alnum:]]*)') > /dev/null 2>&1
 then
-    # Fetch the feed. Reason:
-    # 1) To make sure that feed will be downloaded at most once.
+    # Fetch the feed. Reasons:
+    # 1) To make sure that feed will be downloaded only once.
     #    (Otherwise it might be donwloaded twice.)
     # 2) It might happen that some news would appear between downloads.
     #    Such unread news would be then marked as read.
@@ -55,7 +55,7 @@ then
         tmp_prompt="\e[1;34;48m:: \e[1;37;48mFetching of Arch News RSS Feed "
         tmp_prompt+="\e[1;31;48mfailed\e[1;37;48m! Continue? [Y/n] \e[0m"
 
-        custom_prompt "$tmp_prompt" Y
+        prompt "$tmp_prompt" Y
 
         [[ $? -eq 1 ]] && exit 1
     else
@@ -65,7 +65,7 @@ then
         # Check whether there are some unread messages.
         if [[ $? -eq 0 ]] ; then
             # Yes, unread messages.
-            custom_prompt "\e[1;34;48m:: \e[1;37;48mMark them as read and update? [Y/n] \e[0m" Y
+            prompt "\e[1;34;48m:: \e[1;37;48mMark them as read and update? [Y/n] \e[0m" Y
 
             if [[ $? -eq 0 ]] ; then
                 echo $FEED | ./archnews --stdin --unread --yes
