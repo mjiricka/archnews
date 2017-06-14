@@ -37,10 +37,17 @@ Read feed from stdin, do not fetch data from the Internet.
 Print newest news first. By default newest news are last.
 
 .IP "\fB\-s\fR SINCE, \fB\-\-since\fR SINCE"
-Show only news newer than given date. \fBSINCE\fR can be integer or date.
-\fI1)\fR integer: News newer than given number of days.
-\fI2)\fR string in format "YYYY-mm-dd": News newer than given date (inclusively).
+Show only news newer than given date. \fBSINCE\fR can be integer or date:
+.RS
+.RS
+.IP integer
+News newer than given number of days (0 for today, 1 for yesterday, etc.)
+.IP "date in format YYYY-mm-dd"
+News newer than given date (inclusively).
+.RE
+.sp
 This option is a filter, see section FILTERS for more details.
+.RE
 
 .IP "\fB\-g\fR GREP, \fB\-\-grep\fR GREP"
 Show only news that contains given string in title or description. Search is
