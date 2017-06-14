@@ -51,6 +51,8 @@ class Out:
     GREEN = '\033[92m'
     GRAY = '\033[90m'
     YELLOW = '\033[93m'
+    SUPER_BLUE = '\033[1;34;48m'
+    SUPER_WHITE = '\033[1;37;48m'
     ENDC = '\033[0m'
 
     highlight_word = ''
@@ -65,7 +67,7 @@ class Out:
         return result
 
     @staticmethod
-    def _color_print(color, text, highlight=True):
+    def _color_print(color, text, highlight=True, end='\n', file=sys.stdout):
         """Prints colored text, possible colors: green, blue and red.
            Also it can highlight a word."""
         if color == 'green':
@@ -74,18 +76,22 @@ class Out:
             col = Out.BLUE
         elif color == 'gray':
             col = Out.GRAY
+        elif color == 'super_blue':
+            col = Out.SUPER_BLUE
+        elif color == 'super_white':
+            col = Out.SUPER_WHITE
         elif color == 'none':
             col = Out.ENDC
 
         if highlight:
-            print(col + Out._color_highlight(col, text) + Out.ENDC)
+            print(col + Out._color_highlight(col, text) + Out.ENDC, end=end, file=file)
         else:
-            print(col + text + Out.ENDC)
+            print(col + text + Out.ENDC, end=end, file=file)
 
     @staticmethod
-    def _white_print(_color, text, highlight=True):
+    def _white_print(_color, text, highlight=True, end='\n', file=sys.stdout):
         """Prints text."""
-        print(text)
+        print(text, end=end, file=file)
 
     @staticmethod
     def set(colorize_output):
@@ -483,7 +489,8 @@ def yes_no_prompt(text):
     """Displays prompt with given `text`. Answer "n" is selected when user enters empty string."""
     run = True
     while run:
-        print(text, end='')
+        Out.print('super_blue', ':: ', end='')
+        Out.print('super_white', text, end='')
         answer = input()
         if answer == '':
             answer = 'n'
@@ -560,7 +567,7 @@ def main(args):
             else:
                 print('\n\n')
     else:
-        print('No news to display.', file=sys.stderr)
+        Out.print('super_white', 'No news to display.', file=sys.stderr)
         result_code = 1
 
     if args.unread and items:
@@ -569,7 +576,7 @@ def main(args):
         elif args.no:
             user_input = 'n'
         else:
-            user_input = yes_no_prompt('Mark messages as read? [y/N]: ')
+            user_input = yes_no_prompt('Mark messages as read? [y/N] ')
 
         if user_input == 'y':
             try:
