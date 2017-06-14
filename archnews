@@ -53,7 +53,7 @@ class Out:
     YELLOW = '\033[93m'
     SUPER_BLUE = '\033[1;34;48m'
     SUPER_WHITE = '\033[1;37;48m'
-    ENDC = '\033[0m'
+    NONE = '\033[0m'
 
     highlight_word = ''
 
@@ -70,23 +70,11 @@ class Out:
     def _color_print(color, text, highlight=True, end='\n', file=sys.stdout):
         """Prints colored text, possible colors: green, blue and red.
            Also it can highlight a word."""
-        if color == 'green':
-            col = Out.GREEN
-        elif color == 'blue':
-            col = Out.BLUE
-        elif color == 'gray':
-            col = Out.GRAY
-        elif color == 'super_blue':
-            col = Out.SUPER_BLUE
-        elif color == 'super_white':
-            col = Out.SUPER_WHITE
-        elif color == 'none':
-            col = Out.ENDC
-
+        col = getattr(Out, color.upper())
         if highlight:
-            print(col + Out._color_highlight(col, text) + Out.ENDC, end=end, file=file)
+            print(col + Out._color_highlight(col, text) + Out.NONE, end=end, file=file)
         else:
-            print(col + text + Out.ENDC, end=end, file=file)
+            print(col + text + Out.NONE, end=end, file=file)
 
     @staticmethod
     def _white_print(_color, text, highlight=True, end='\n', file=sys.stdout):
