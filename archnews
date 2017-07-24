@@ -39,7 +39,6 @@ COLORIZE_OUTPUT = True
 ORDER = True  # True = newest news last, False = newest news first
 NUM_NEWS = 3  # 0 for all
 
-
 # ************************************************************
 #  Output
 # ************************************************************
@@ -54,9 +53,10 @@ class Out:
     SUPER_BLUE = '\033[1;34;48m'
     SUPER_WHITE = '\033[1;37;48m'
     NONE = '\033[0m'
-
     highlight_word = ''
-
+    #glyons 240717
+    BODY_TEXT = True
+    
     @staticmethod
     def _color_highlight(return_color, text):
         if Out.highlight_word:
@@ -89,6 +89,17 @@ class Out:
         else:
             Out.print = Out._white_print
 
+
+    @staticmethod
+    def setbody(body_text):
+        """Sets the default value for gBODY_TEXT based on args input glyons 240717"""
+        
+        if body_text == True:
+              Out.BODY_TEXT = True
+              return True
+        else:
+              Out.BODY_TEXT  = False
+              return False
 
 # ************************************************************
 #  HTML parser
@@ -133,6 +144,7 @@ class TheParser(HTMLParser):
 
     def _append_raw(self, text):
         self.out += text
+
 
     def handle_starttag(self, tag, attrs):
         self._stack.append(tag)
@@ -257,7 +269,9 @@ class FeedEntry:
         except SyntaxError as err:
             text = str(err)
         text = text.strip()
-        Out.print('none', wrap_func(text))
+        #glyons 240717 check if -b called(BODY_TEXT will be false) if no print the body
+        if Out.BODY_TEXT == True:
+            Out.print('none', wrap_func(text))
 
     def get_plain_description(self):
         """Returns description without tags."""
@@ -301,7 +315,6 @@ class FeedParser:
             description = FeedParser._get(item, 'description')
             time_formatted = FeedParser._convert_time(pub_date)
             items.append(FeedEntry(time_formatted, title, link, description))
-
         return items
 
 
@@ -409,6 +422,11 @@ When -u parameter is used, last time of check is stored inside file {}.
     parser.add_argument(
         '-c', '--color', help='do not print in color, default is colorized output',
         default=COLORIZE_OUTPUT, dest='colorize_output', action='store_false')
+
+    #glyons 240717
+    parser.add_argument(
+        '-b', '--body', help='do not print out body of text, just title',
+        default=Out.BODY_TEXT, dest='body_text', action='store_false')
 
     parser.add_argument(
         '-i', '--stdin', help='read feed from stdin, do not fetch data from the Internet',
@@ -529,6 +547,9 @@ def main(args):
     Out.set(args.colorize_output)
     if args.grep:
         Out.highlight_word = args.grep
+
+    #glyons 270717 check for body text
+    Out.setbody(args.body_text)
 
     # Set default locale ('' is for the system locale, otherwise
     # e.g. 'cs_CZ.UTF-8' can be used).
