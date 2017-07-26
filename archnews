@@ -246,18 +246,19 @@ class FeedEntry:
         self.link = link
         self.description = description
 
-    def print(self, wrap_func):
+    def print(self, wrap_func, print_body):
         """Prints news feed entry."""
         Out.print('gray', self.link, highlight=False)
         Out.print('blue', self.time.strftime('%x %X'))
         Out.print('green', self.title)
-        print()
-        try:
-            text = TheParser.unhtml(self.description)
-        except SyntaxError as err:
-            text = str(err)
-        text = text.strip()
-        Out.print('none', wrap_func(text))
+        if print_body:
+            print()
+            try:
+                text = TheParser.unhtml(self.description)
+            except SyntaxError as err:
+                text = str(err)
+            text = text.strip()
+            Out.print('none', wrap_func(text))
 
     def get_plain_description(self):
         """Returns description without tags."""
@@ -411,6 +412,10 @@ When -u parameter is used, last time of check is stored inside file {}.
         default=COLORIZE_OUTPUT, dest='colorize_output', action='store_false')
 
     parser.add_argument(
+        '-b', '--brief-mode', help='brief output: do not print body of each news',
+        default=False, dest='brief_mode', action='store_true')
+
+    parser.add_argument(
         '-i', '--stdin', help='read feed from stdin, do not fetch data from the Internet',
         default=False, dest='stdin', action='store_true')
 
@@ -549,8 +554,8 @@ def main(args):
         for item in items:
             newest_time = max(item.time, newest_time)
 
-            item.print(Wrap.wrap)
-            if item == items[-1]:
+            item.print(Wrap.wrap, print_body=(not args.brief_mode))
+            if item == items[-1] or args.brief_mode:
                 print()
             else:
                 print('\n\n')
