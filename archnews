@@ -35,8 +35,6 @@ DATA_FILE_PATH = join(expanduser(XDG_DATA_HOME or DATA_HOME_DEFAULT), DATA_FILE_
 DATA_FILE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
 
 WRAP_SIZE = 100  # Zero for no wrap.
-COLORIZE_OUTPUT = True
-ORDER = True  # True = newest news last, False = newest news first
 NUM_NEWS = 3  # 0 for all
 
 
@@ -72,9 +70,10 @@ class Out:
            Also it can highlight a word."""
         col = getattr(Out, color.upper())
         if highlight:
-            print(col + Out._color_highlight(col, text) + Out.NONE, end=end, file=file)
+            final_text = col + Out._color_highlight(col, text) + Out.NONE
         else:
-            print(col + text + Out.NONE, end=end, file=file)
+            final_text = col + text + Out.NONE
+        print(final_text, end=end, file=file)
 
     @staticmethod
     def _white_print(_color, text, highlight=True, end='\n', file=sys.stdout):
@@ -409,7 +408,7 @@ When -u parameter is used, last time of check is stored inside file {}.
 
     parser.add_argument(
         '-c', '--color', help='do not print in color, default is colorized output',
-        default=COLORIZE_OUTPUT, dest='colorize_output', action='store_false')
+        default=True, dest='colorize_output', action='store_false')
 
     parser.add_argument(
         '-b', '--brief-mode', help='brief output: do not print body of each news',
@@ -421,7 +420,7 @@ When -u parameter is used, last time of check is stored inside file {}.
 
     parser.add_argument(
         '-r', '--reversed', help='print newest news first, by default newest news are last',
-        default=ORDER, dest='order', action='store_false')
+        default=True, dest='order', action='store_false')
 
     parser.add_argument(
         '-u', '--unread', help='''display only previously unread news''',
@@ -543,8 +542,8 @@ def main(args):
 
     # Set correct order.
     if args.order:
-        # Function `reversed` cannot be used, it returns iterator
-        # that cannot be indexed.
+        # Reverse the array. (Note to myself: Function `reversed` cannot
+        # be used, it returns iterator that cannot be indexed.)
         items = items[::-1]
 
     # Print results.
