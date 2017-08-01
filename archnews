@@ -26,6 +26,8 @@ from xml.dom import minidom
 #  Globals
 # ************************************************************
 
+VERSION = '1.0.0'
+
 FEED_URL = 'https://www.archlinux.org/feeds/news/'
 DATA_HOME_DEFAULT = '~/.local/share/'
 DATA_FILE_DEFAULT_PATH = 'archnews/unread'
@@ -459,6 +461,10 @@ if no other filter is set: ''' + str(NUM_NEWS) + '''
 otherwise zero (= all in feed)''',
         type=int, dest='num_news')
 
+    parser.add_argument(
+        '--version', help='print version and quit',
+        default=False, dest='version', action='store_true')
+
     archnews_env_params = [p for p in ARCHNEWS_ENV_PARAMS.split(' ') if p != '']
     args = parser.parse_args(archnews_env_params + sys.argv[1:])
 
@@ -521,6 +527,10 @@ def filter_pipe(items, args):
 
 def main(args):
     """Here the interesting part of the script starts."""
+    if args.version:
+        print('archnews version ' + VERSION)
+        return 0
+
     result_code = 0
 
     if args.stdin:
