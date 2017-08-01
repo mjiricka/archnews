@@ -36,6 +36,9 @@ Brief output: do not print body of each news.
 .IP "\fB\-i\fR, \fB\-\-stdin\fR"
 Read feed from stdin, do not fetch data from the Internet.
 
+.IP "\fB\-l\fR, \fB\-\-locale\fR"
+Locale to use (e.g. "cs_CZ.UTF-8"), it overrides environmental variable.
+
 .IP "\fB\-r\fR, \fB\-\-reversed\fR"
 Print newest news first. By default newest news are last.
 
@@ -99,7 +102,8 @@ only when option \fB\-\-unread\fR is used. If no \fB$XDG_DATA_HOME\fR is set, th
 
 .SH ENVIRONMENT
 .IP \fBLOCALE\fR
-From locale is read settings for displaying date and time.
+From locale is read settings for displaying date and time. (It can be overridden
+by \fB--locale\fR parameter.)
 
 .IP "\fB$XDG_DATA_HOME\fR"
 Path to home data directory, see FILES section for details.

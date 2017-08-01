@@ -420,6 +420,11 @@ When -u parameter is used, last time of check is stored inside file {}.
         default=False, dest='stdin', action='store_true')
 
     parser.add_argument(
+        '-l', '--locale',
+        help='locale to use (e.g. "cs_CZ.UTF-8"), it overrides environmental variable',
+        default='', dest='locale')
+
+    parser.add_argument(
         '-r', '--reversed', help='print newest news first, by default newest news are last',
         default=True, dest='order', action='store_false')
 
@@ -538,7 +543,7 @@ def main(args):
 
     # Set default locale ('' is for the system locale, otherwise
     # e.g. 'cs_CZ.UTF-8' can be used).
-    locale.setlocale(locale.LC_ALL, '')
+    locale.setlocale(locale.LC_ALL, args.locale)
 
     items = filter_pipe(items, args)
 
