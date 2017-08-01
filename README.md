@@ -27,3 +27,7 @@ Because this is a tool specifically for Arch Linux, install it via [AUR](https:/
 
 ![screen of archnews in terminal](doc/archnew_in_action.gif)
 
+
+## Contribution
+
+I am willing to maintain and further develop the project, so any contribution (issues, ideas, pull requests) is welcome.
