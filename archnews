@@ -31,6 +31,7 @@ DATA_HOME_DEFAULT = '~/.local/share/'
 DATA_FILE_DEFAULT_PATH = 'archnews/unread'
 XDG_DATA_HOME = environ.get('XDG_DATA_HOME')
 DATA_FILE_PATH = join(expanduser(XDG_DATA_HOME or DATA_HOME_DEFAULT), DATA_FILE_DEFAULT_PATH)
+ARCHNEWS_ENV_PARAMS = environ.get('ARCHNEWS_PARAMS') or ''
 
 DATA_FILE_FORMAT = '%Y-%m-%d %H:%M:%S %z'
 
@@ -453,7 +454,8 @@ if no other filter is set: ''' + str(NUM_NEWS) + '''
 otherwise zero (= all in feed)''',
         type=int, dest='num_news')
 
-    args = parser.parse_args()
+    archnews_env_params = [p for p in ARCHNEWS_ENV_PARAMS.split(' ') if p != '']
+    args = parser.parse_args(archnews_env_params + sys.argv[1:])
 
     # Yes/no parameters
     if args.yes and args.no:
