@@ -26,7 +26,7 @@ from xml.dom import minidom
 #  Globals
 # ************************************************************
 
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 
 FEED_URL = 'https://www.archlinux.org/feeds/news/'
 DATA_HOME_DEFAULT = '~/.local/share/'
