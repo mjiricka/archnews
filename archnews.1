@@ -102,6 +102,16 @@ File stores date of the last news marked as read. This file is created and updat
 only when option \fB\-\-unread\fR is used. If no \fB$XDG_DATA_HOME\fR is set, then
 \fI'~/.local/share/\fR is used.
 
+.IP "\fI$HOME/.config/archnews_wrap_conf.sh\fR"
+.IX Item "$HOME/.config/archnews_wrap_conf.sh"
+This file is sourced at the beginning of \fBarchnews_wrapper\fR script. It
+might contain definition of \fB$ARCHNEWS_PACKAGE_MANAGER_FULL_PATH\fR
+(see ENVIRONMENT section for details).
+(E.g. file might contain line like this:
+\fBARCHNEWS_PACKAGE_MANAGER_FULL_PATH=/usr/bin/pacaur\fR)
+Beware that \fBarchnews_wrapper\fR is usually run as root, so the config must be
+in root's home, not in regular user's!
+
 
 .SH ENVIRONMENT
 .IP \fBLOCALE\fR
@@ -113,6 +123,12 @@ Path to home data directory, see FILES section for details.
 
 .IP "\fB$ARCHNEWS_PARAMS\fR"
 Command line arguments which are passed to \fBarchnews\fR automatically.
+
+.IP "\fB$ARCHNEWS_PACKAGE_MANAGER_FULL_PATH\fR"
+Variable might contain FULL path to "pacman compatible" tool \fBarchnews_wrapper\fR
+will use as its backend. Be default it is \fI/usr/bin/pacman\fR. It can be set
+directly (but remember: sudo changes environment!) or in \fBarchnews_wrapper\fR
+configuration script (see FILES section).
 
 
 .SH RETURN CODES

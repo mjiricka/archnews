@@ -1,10 +1,27 @@
 #/usr/bin/env bash
 
 # Wrapper for pacman that invokes `archnews` command to check Arch news.
+#
+# In case one uses different package manager (that is "pacman compatible") environmental variable
+# ARCHNEWS_PACKAGE_MANAGER_FULL_PATH can be set.
 
 
 FEED_URL="https://www.archlinux.org/feeds/news/"
-PACMAN_FULL_PATH="/usr/bin/pacman"
+PACKAGE_MANAGER_FULL_PATH_DEFAULT="/usr/bin/pacman"
+ARCHNEWS_WRAPPER_CONF="$HOME/.config/archnews_wrap_conf.sh"
+
+
+# Load configuration if exists.
+if [[ -f "$ARCHNEWS_WRAPPER_CONF" ]] ; then
+    source "$ARCHNEWS_WRAPPER_CONF"
+fi
+
+# Check whether there is a user configuration for ARCHNEWS_PACKAGE_MANAGER_FULL_PATH.
+if [[ -z "$ARCHNEWS_PACKAGE_MANAGER_FULL_PATH" ]] ; then
+    PACKAGE_MANAGER_FULL_PATH="$PACKAGE_MANAGER_FULL_PATH_DEFAULT"
+else
+    PACKAGE_MANAGER_FULL_PATH="$ARCHNEWS_PACKAGE_MANAGER_FULL_PATH"
+fi
 
 
 # Universal prompt function.
@@ -82,5 +99,5 @@ then
 fi
 
 # Run the original command.
-exec $PACMAN_FULL_PATH $@
+exec $PACKAGE_MANAGER_FULL_PATH $@
 
