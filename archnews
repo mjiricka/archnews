@@ -598,7 +598,8 @@ def main(args):
 
 
 # Run the program.
-exit(main(process_cmd_arguments()))
+if __name__ == "__main__":
+    exit(main(process_cmd_arguments()))
 
 
 # EOF
