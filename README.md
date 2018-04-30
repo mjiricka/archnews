@@ -20,7 +20,6 @@ Features:
 
 Because this is a tool specifically for Arch Linux, install it via [AUR](https://wiki.archlinux.org/index.php/Arch_User_Repository): https://aur.archlinux.org/packages/archnews2/
 
-(Note: do NOT use directly the PKGBUILD file located inside this repository. It will NOT work!)
 
 ### Pacman wrapper
 
