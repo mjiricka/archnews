@@ -327,7 +327,7 @@ def since_filter(user_input, items):
         # all times the day `num_days`-before today will be later.
         sfilter = (
             datetime.combine(
-                datetime.utcnow().date() - timedelta(days=num_days),
+                datetime.now(timezone.utc) - timedelta(days=num_days),
                 datetime.min.time(), tzinfo=timezone.utc))
     return filter(lambda item: sfilter < item.time, items)
 
