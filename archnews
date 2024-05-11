@@ -26,7 +26,7 @@ from xml.dom import minidom
 #  Globals
 # ************************************************************
 
-VERSION = '1.2.0'
+VERSION = '1.3.1'
 
 FEED_URL = 'https://www.archlinux.org/feeds/news/'
 DATA_HOME_DEFAULT = '~/.local/share/'
@@ -327,7 +327,7 @@ def since_filter(user_input, items):
         # all times the day `num_days`-before today will be later.
         sfilter = (
             datetime.combine(
-                datetime.utcnow().date() - timedelta(days=num_days),
+                datetime.now(timezone.utc) - timedelta(days=num_days),
                 datetime.min.time(), tzinfo=timezone.utc))
     return filter(lambda item: sfilter < item.time, items)
 
